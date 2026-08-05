@@ -1,0 +1,35 @@
+name: Auto Publish Posts
+
+on:
+  schedule:
+    # 06:00 UTC = 09:00 по МСК
+    # 16:00 UTC = 19:00 по МСК
+    - cron: '0 6,16 * * *'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Скачиваем код
+        uses: actions/checkout@v4
+
+      - name: Настраиваем Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Запускаем скрипт публикации
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+        run: python bot.py
+
+      - name: Сохраняем изменения в файле постов
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add posts.json
+          git diff --staged --quiet || (git commit -m "Отметка об публикации поста" && git push)
